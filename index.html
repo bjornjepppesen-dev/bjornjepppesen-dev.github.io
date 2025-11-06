@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+  <meta charset="utf-8" />
+  <title>Anatomi & Fysiologi – Quiz</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root{
+      --bg:#0b1220; --panel:#121a2b; --card:#18213a; --ink:#e9edf7; --muted:#a9b1c7;
+      --acc:#6ea8ff; --ok:#2ecc71; --warn:#f1c40f; --err:#e74c3c; --chip:#233054;
+    }
+    html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font:16px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial;}
+    h1,h2,h3{margin:0 0 .5rem}
+    h1{font-size:1.4rem}
+    h2{font-size:1.1rem;color:var(--muted)}
+    h3{font-size:1rem;color:var(--muted)}
+    a,button{cursor:pointer}
+    .wrap{max-width:1100px;margin:0 auto;padding:20px;}
+    .tabs{display:flex;gap:8px;margin:10px 0 16px;}
+    .tab{padding:10px 14px;border-radius:8px;background:var(--panel);color:var(--ink);border:1px solid #1f2a45}
+    .tab.active{outline:2px solid var(--acc)}
+    .grid{display:grid;gap:14px}
+    .two{grid-template-columns: 1fr 1fr}
+    .panel{background:var(--panel);padding:14px;border-radius:10px;border:1px solid #1f2a45}
+    .card{background:var(--card);padding:14px;border-radius:10px;border:1px solid #223055}
+    .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    .muted{color:var(--muted)}
+    .chip{display:inline-flex;align-items:center;gap:6px;background:var(--chip);padding:4px 8px;border-radius:999px}
+    .btn{background:var(--acc);border:none;color:#0b1220;padding:10px 14px;border-radius:8px;font-weight:600}
+    .btn.secondary{background:#2e3a5f;color:var(--ink)}
+    .btn.ghost{background:transparent;border:1px solid #2e3a5f;color:var(--ink)}
+    .btn.warn{background:var(--warn);color:#212121}
+    .btn.err{background:var(--err)}
+    .btn.ok{background:var(--ok);color:#0b1220}
+    input[type="number"],input[type="text"],textarea,select{
+      background:#0f1730;color:var(--ink);border:1px solid #33406a;border-radius:8px;padding:8px 10px;width:100%;
+    }
+    textarea{min-height:100px}
+    .list{display:grid;gap:10px}
+    .question{font-size:1.05rem}
+    .hint{font-size:.9rem;color:var(--muted)}
+    .mc-option{display:flex;gap:10px;align-items:flex-start;padding:8px;background:#101a33;border:1px solid #253258;border-radius:8px}
+    .progress{height:8px;background:#1a2644;border-radius:6px;overflow:hidden;margin:8px 0 2px}
+    .progress>i{display:block;height:100%;background:var(--acc);width:0%}
+    .kpi{display:flex;gap:12px;flex-wrap:wrap}
+    .kpi .card{padding:10px 12px}
+    .drag-list{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+    .drag-item{padding:10px;background:#101a33;border:1px dashed #3a4a79;border-radius:8px}
+    .drag-item.dragging{opacity:.6}
+    .split{display:grid;gap:12px}
+    @media(min-width:920px){ .split{grid-template-columns: 2fr 1fr} }
+    .table{width:100%;border-collapse:collapse}
+    .table th,.table td{border-bottom:1px solid #263357;padding:8px;text-align:left;vertical-align:top}
+    .badge{padding:2px 6px;border-radius:6px;font-size:.85rem}
+    .badge.ok{background:rgba(46,204,113,.15);color:var(--ok)}
+    .badge.err{background:rgba(231,76,60,.15);color:var(--err)}
+    .badge.auto{background:#21345f;color:#9fc0ff}
+    .sep{height:1px;background:#263357;margin:10px 0}
+    .hidden{display:none !important}
+    .right{margin-left:auto}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Anatomi & Fysiologi – Quiz</h1>
+    <h2 class="muted">Elev- og lærer-modul i én fil</h2>
+
+    <div class="tabs">
+      <button class="tab active" id="tab-student">Elev</button>
+      <button class="tab" id="tab-teacher">Lærerpanel</button>
+    </div>
+
+    <!-- ELEV PANEL -->
+    <section id="student" class="panel">
+      <div id="student-setup" class="grid">
+        <div class="card">
+          <h3>Start prøve</h3>
+          <div class="row">
+            <div style="flex:1 1 260px">
+              <label>Navn / Elev ID (valgfri)</label>
+              <input id="student-name" type="text" placeholder="Fx: Anna Jensen"/>
+            </div>
+            <div class="right muted">Indlæs først spørgsmål under “Lærerpanel” hvis tomt.</div>
+          </div>
+          <div id="area-select" class="list" style="margin-top:10px">
+            <!-- Områder og antal pr. område injiceres her -->
+          </div>
+          <div class="row" style="margin-top:10px">
+            <button id="btn-start" class="btn">Start quiz</button>
+            <button id="btn-clear-sub" class="btn ghost">Ryd lokale besvarelser</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Valgt quizdata</h3>
+          <div class="list">
+            <div class="row"><span class="chip">Spørgsmål i bank:</span><b id="bank-count">0</b></div>
+            <div class="row"><span class="chip">Områder:</span><div id="bank-areas" class="row"></div></div>
+            <div class="row muted">Banken hentes automatisk fra <code>quizdata.json</code> (samme mappe) når du trykker “Hent quizdata” i Lærerpanel, eller ved at indsætte JSON manuelt.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- QUIZ FLOW -->
+      <div id="student-quiz" class="hidden">
+        <div class="card split">
+          <div>
+            <div class="row">
+              <div class="chip">Opgave <span id="q-index">1</span>/<span id="q-total">1</span></div>
+              <div class="chip">Område: <span id="q-area"></span></div>
+              <div class="chip">Type: <span id="q-type"></span></div>
+              <div class="right muted" id="q-id"></div>
+            </div>
+            <div class="progress"><i id="q-progress"></i></div>
+
+            <div class="question" id="q-text" style="margin:10px 0"></div>
+            <div class="hint" id="q-hint"></div>
+
+            <!-- Render target -->
+            <div id="q-render" style="margin-top:12px"></div>
+
+            <div class="row" style="margin-top:14px">
+              <button id="btn-prev" class="btn secondary">Forrige</button>
+              <button id="btn-next" class="btn">Næste</button>
+              <button id="btn-submit" class="btn ok right">Afslut & aflever</button>
+            </div>
+          </div>
+
+          <aside>
+            <div class="kpi">
+              <div class="card">
+                <div class="muted">Autoscore (foreløbig)</div>
+                <div id="kpi-score" style="font-weight:700">0 / 0</div>
+              </div>
+              <div class="card">
+                <div class="muted">Besvaret</div>
+                <div id="kpi-answered" style="font-weight:700">0</div>
+              </div>
+            </div>
+            <div class="sep"></div>
+            <div class="muted">Hint: Dine svar gemmes løbende i browseren.</div>
+          </aside>
+        </div>
+      </div>
+
+      <!-- SUBMISSION RECEIPT -->
+      <div id="student-receipt" class="hidden">
+        <div class="card">
+          <h3>Aflevering modtaget</h3>
+          <div class="row">
+            <span class="chip">Elev</span> <b id="rcpt-name"></b>
+            <span class="chip">Tidspunkt</span> <b id="rcpt-time"></b>
+            <span class="chip">Autoscore</span> <b id="rcpt-score"></b>
+          </div>
+          <div class="sep"></div>
+          <table class="table" id="rcpt-table">
+            <thead><tr><th>#</th><th>Område</th><th>Spørgsmål</th><th>Svar</th><th>Auto</th></tr></thead>
+            <tbody></tbody>
+          </table>
+          <div class="row" style="margin-top:10px">
+            <button class="btn ghost" id="btn-back-home">Til start</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- LÆRERPANEL -->
+    <section id="teacher" class="panel hidden">
+      <div class="grid two">
+        <div class="card">
+          <h3>Hent/indsæt spørgsmål</h3>
+          <div class="row">
+            <button id="btn-load" class="btn">Hent quizdata.json</button>
+            <button id="btn-save-bank" class="btn ghost">Download nuværende bank</button>
+          </div>
+          <div class="list" style="margin-top:10px">
+            <label for="ta-bank" class="muted">Indsæt/erstat spørgsmål (JSON array):</label>
+            <textarea id="ta-bank" placeholder='[ { "id":"...", "område":"...", "type":"multiple_choice|angivelse|beskrivelse|drag_and_drop", "spørgsmål":"...", "hint":"...", "svarmuligheder":[...], "korrekt_svar": ... }, ... ]'></textarea>
+            <div class="row">
+              <button id="btn-apply-bank" class="btn">Indlæs fra tekst</button>
+              <span class="muted right">Validerer JSON og opdaterer bank lokalt (ingen upload).</span>
+            </div>
+          </div>
+          <div class="sep"></div>
+          <div class="list">
+            <div class="row">
+              <span class="chip">I bank:</span> <b id="t-bank-count">0</b>
+              <span class="chip">Områder:</span> <div id="t-bank-areas" class="row"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Besvarelser (lokalt)</h3>
+          <div class="row">
+            <button id="btn-refresh-sub" class="btn ghost">Opdater liste</button>
+            <button id="btn-clear-all" class="btn warn">Slet alle besvarelser</button>
+          </div>
+          <div id="submissions-list" class="list" style="margin-top:10px"></div>
+        </div>
+      </div>
+
+      <!-- Lærer: gennemse/rette -->
+      <div id="teacher-mark" class="card hidden">
+        <h3>Rettelse & feedback</h3>
+        <div class="row">
+          <span class="chip">Elev</span> <b id="m-name"></b>
+          <span class="chip">Tidspunkt</span> <b id="m-time"></b>
+          <span class="chip">Autoscore</span> <b id="m-auto"></b>
+        </div>
+        <div class="sep"></div>
+        <table class="table" id="mark-table">
+          <thead>
+            <tr><th>#</th><th>Område</th><th>Spørgsmål</th><th>Elevsvar</th><th>Auto</th><th>Lærer-bedømmelse</th><th>Feedback</th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+        <div class="row" style="margin-top:10px">
+          <button id="btn-save-mark" class="btn ok">Gem bedømmelse</button>
+          <button id="btn-export-mark" class="btn">Download denne besvarelse (JSON)</button>
+          <button id="btn-close-mark" class="btn ghost right">Luk</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    /***************
+     * Data & state
+     ***************/
+    const storeKeyBank = 'quiz_bank_v1';
+    const storeKeySubs = 'quiz_submissions_v1';
+
+    /** Bank: array af spørgsmål */
+    let BANK = [];               // indlæses via fil eller textarea
+    let AREAS = [];              // unikke områder
+
+    /** Aktiv quiz-session */
+    let session = {
+      studentName: '',
+      items: [],                 // udvalgte spørgsmål
+      idx: 0,                    // nuværende spørgsmål
+      answers: [],               // {id, type, value, correctAuto}
+      startedAt: null
+    };
+
+    /*****************
+     * Hjælpefunktioner
+     *****************/
+    const $ = sel => document.querySelector(sel);
+    const $$ = sel => Array.from(document.querySelectorAll(sel));
+
+    function uniqueAreas(arr){
+      return [...new Set(arr.map(q => q.område))].sort();
+    }
+    function sample(array, n){
+      const copy = array.slice();
+      // Fisher-Yates
+      for(let i = copy.length-1; i>0; i--){
+        const j = Math.floor(Math.random()*(i+1));
+        [copy[i], copy[j]] = [copy[j], copy[i]];
+      }
+      return copy.slice(0, Math.max(0, Math.min(n, copy.length)));
+    }
+    function shuffle(a){ return sample(a, a.length); }
+
+    function saveBankLocal(){
+      localStorage.setItem(storeKeyBank, JSON.stringify(BANK));
+    }
+    function loadBankLocal(){
+      const raw = localStorage.getItem(storeKeyBank);
+      if(!raw) return null;
+      try { return JSON.parse(raw); } catch(e){ return null; }
+    }
+    function loadSubs(){
+      try{ return JSON.parse(localStorage.getItem(storeKeySubs) || '[]'); }catch(e){ return []; }
+    }
+    function saveSubs(list){
+      localStorage.setItem(storeKeySubs, JSON.stringify(list));
+    }
+    function nowIso(){ return new Date().toISOString(); }
+    function fmtTime(iso){
+      const d = new Date(iso);
+      return d.toLocaleString();
+    }
+
+    function download(filename, text){
+      const blob = new Blob([text], {type:'application/json'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = filename; a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    /***********************
+     * Init og tabhåndtering
+     ***********************/
+    const tabStudent = $('#tab-student');
+    const tabTeacher = $('#tab-teacher');
+    const secStudent = $('#student');
+    const secTeacher = $('#teacher');
+
+    tabStudent.onclick = () => {
+      tabStudent.classList.add('active'); tabTeacher.classList.remove('active');
+      secStudent.classList.remove('hidden'); secTeacher.classList.add('hidden');
+    };
+    tabTeacher.onclick = () => {
+      tabTeacher.classList.add('active'); tabStudent.classList.remove('active');
+      secTeacher.classList.remove('hidden'); secStudent.classList.add('hidden');
+      refreshTeacher();
+    };
+
+    /*******************
+     * Bank: vis & status
+     *******************/
+    function renderBankStatus(){
+      $('#bank-count').textContent = BANK.length;
+      $('#t-bank-count').textContent = BANK.length;
+      AREAS = uniqueAreas(BANK);
+      // student & teacher area badges
+      const makeBadges = (el) => {
+        el.innerHTML = '';
+        AREAS.forEach(a => {
+          const span = document.createElement('span');
+          span.className = 'chip';
+          span.textContent = a;
+          el.appendChild(span);
+        });
+      };
+      makeBadges($('#bank-areas'));
+      makeBadges($('#t-bank-areas'));
+      renderAreaSelect();
+    }
+
+    /*********************************
+     * Elev: startskærm – områdevælger
+     *********************************/
+    function renderAreaSelect(){
+      const host = $('#area-select');
+      host.innerHTML = '';
+      if (AREAS.length === 0){
+        const div = document.createElement('div');
+        div.className = 'muted';
+        div.textContent = 'Ingen spørgsmål indlæst endnu. Gå til Lærerpanel for at hente quizdata.';
+        host.appendChild(div);
+        return;
+      }
+      AREAS.forEach(area => {
+        const id = 'a_' + area.replace(/\s+/g,'_');
+        const w = document.createElement('div');
+        w.className = 'row';
+        w.innerHTML = `
+          <label class="chip" for="${id}">
+            <input type="checkbox" id="${id}" data-area="${area}" style="margin-right:6px">
+            ${area}
+          </label>
+          <span class="muted">Antal spørgsmål:</span>
+          <input type="number" class="area-count" data-area="${area}" value="5" min="1" step="1" style="width:90px">
+          <span class="muted">I bank: ${BANK.filter(q => q.område === area).length}</span>
+        `;
+        host.appendChild(w);
+      });
+    }
+
+    /*******************
+     * Elev: start quiz
+     *******************/
+    $('#btn-start').onclick = () => {
+      if(BANK.length === 0){
+        alert('Der er ingen spørgsmål i banken. Indlæs quizdata i Lærerpanel.');
+        return;
+      }
+      const checks = $$('#area-select input[type="checkbox"]:checked');
+      if(checks.length === 0){ alert('Vælg mindst ét område.'); return; }
+
+      const selections = checks.map(cb => {
+        const area = cb.dataset.area;
+        const countEl = $(`.area-count[data-area="${CSS.escape(area)}"]`);
+        const num = Math.max(1, parseInt(countEl.value || '1', 10));
+        return {area, num};
+      });
+
+      // Konstruér sessionens spørgsmål
+      let chosen = [];
+      selections.forEach(sel => {
+        const pool = BANK.filter(q => q.område === sel.area);
+        chosen = chosen.concat(sample(pool, sel.num));
+      });
+      chosen = shuffle(chosen);
+      if(chosen.length === 0){ alert('Kunne ikke finde spørgsmål i de valgte områder.'); return; }
+
+      session.studentName = $('#student-name').value.trim();
+      session.items = chosen;
+      session.idx = 0;
+      session.answers = chosen.map(q => ({ id:q.id, type:q.type, value:null, correctAuto:null, area:q.område, text:q.spørgsmål }));
+      session.startedAt = nowIso();
+
+      // UI
+      $('#student-setup').classList.add('hidden');
+      $('#student-quiz').classList.remove('hidden');
+      $('#student-receipt').classList.add('hidden');
+
+      renderQuestion();
+      refreshKpis();
+    };
+
+    /**************************
+     * Elev: renderer spørgsmål
+     **************************/
+    function renderQuestion(){
+      const n = session.items.length;
+      const i = session.idx;
+      const q = session.items[i];
+      const ans = session.answers[i];
+
+      $('#q-index').textContent = i+1;
+      $('#q-total').textContent = n;
+      $('#q-progress').style.width = ((i+1)/n*100)+'%';
+      $('#q-area').textContent = q.område;
+      $('#q-type').textContent = q.type;
+      $('#q-id').textContent = q.id || '';
+      $('#q-text').textContent = q.spørgsmål || '';
+      $('#q-hint').textContent = q.hint ? ('Hint: '+q.hint) : '';
+
+      const mount = $('#q-render');
+      mount.innerHTML = '';
+
+      if(q.type === 'multiple_choice'){
+        (q.svarmuligheder || []).forEach((opt, idx) => {
+          const row = document.createElement('label');
+          row.className = 'mc-option';
+          row.innerHTML = `
+            <input type="radio" name="mc" value="${idx}">
+            <div>${opt}</div>
+          `;
+          mount.appendChild(row);
+        });
+        if(ans.value !== null){
+          const checked = mount.querySelector(`input[value="${ans.value}"]`);
+          if(checked) checked.checked = true;
+        }
+      }
+      else if(q.type === 'angivelse' || q.type === 'beskrivelse'){
+        const ta = document.createElement('textarea');
+        ta.id = 'txt-free';
+        ta.placeholder = 'Skriv dit svar her...';
+        ta.value = ans.value || '';
+        mount.appendChild(ta);
+      }
+      else if(q.type === 'drag_and_drop'){
+        const ul = document.createElement('ul');
+        ul.className = 'drag-list';
+        const items = q.svarmuligheder ? q.svarmuligheder.slice() : [];
+        // Hvis der findes elevens tidligere rækkefølge, brug den
+        let order = (Array.isArray(ans.value) ? ans.value : items.map((_,idx)=>idx));
+        // order er indeks i forhold til original svarmuligheder
+        order.forEach(idx => {
+          const li = document.createElement('li');
+          li.className = 'drag-item';
+          li.draggable = true;
+          li.dataset.index = idx;
+          li.textContent = items[idx];
+          ul.appendChild(li);
+        });
+        mount.appendChild(ul);
+        enableDragList(ul);
+      }
+
+      // Navigationsknapper
+      $('#btn-prev').disabled = (i===0);
+      $('#btn-next').disabled = (i===n-1);
+      $('#btn-submit').classList.toggle('hidden', i!==n-1);
+    }
+
+    function enableDragList(ul){
+      let dragging = null;
+      ul.addEventListener('dragstart', e => {
+        if(e.target.classList.contains('drag-item')){
+          dragging = e.target; dragging.classList.add('dragging');
+        }
+      });
+      ul.addEventListener('dragend', e => {
+        if(dragging){ dragging.classList.remove('dragging'); dragging=null; saveCurrentAnswer(); refreshKpis(); }
+      });
+      ul.addEventListener('dragover', e => {
+        e.preventDefault();
+        const after = [...ul.querySelectorAll('.drag-item:not(.dragging)')].find(el => {
+          const rect = el.getBoundingClientRect();
+          return e.clientY < rect.top + rect.height/2;
+        });
+        if(after) ul.insertBefore(dragging, after); else ul.appendChild(dragging);
+      });
+    }
+
+    function getCurrentUIValue(){
+      const q = session.items[session.idx];
+      if(q.type === 'multiple_choice'){
+        const chk = $('#q-render input[name="mc"]:checked');
+        return chk ? parseInt(chk.value,10) : null;
+      }
+      if(q.type === 'angivelse' || q.type === 'beskrivelse'){
+        return ($('#txt-free')?.value || '').trim();
+      }
+      if(q.type === 'drag_and_drop'){
+        const orderNodes = $$('#q-render .drag-item');
+        return orderNodes.map(li => parseInt(li.dataset.index,10));
+      }
+      return null;
+    }
+
+    function autoGrade(q, value){
+      if(value==null) return null;
+      if(q.type === 'multiple_choice'){
+        return (parseInt(value,10) === q.korrekt_svar) ? true : false;
+      }
+      if(q.type === 'drag_and_drop'){
+        const correct = Array.isArray(q.korrekt_svar) ? q.korrekt_svar : [];
+        if(correct.length && Array.isArray(value) && value.length===correct.length){
+          return value.every((v,i)=> v===correct[i]);
+        }
+        return null;
+      }
+      // angivelse/beskrivelse kræver lærerbedømmelse
+      return null;
+    }
+
+    function saveCurrentAnswer(){
+      const q = session.items[session.idx];
+      const val = getCurrentUIValue();
+      const graded = autoGrade(q, val);
+      const ans = session.answers[session.idx];
+      ans.value = val;
+      ans.correctAuto = graded;
+    }
+
+    function refreshKpis(){
+      const answered = session.answers.filter(a => a.value!==null).length;
+      const autoMarks = session.answers.filter(a => a.correctAuto!==null);
+      const autoScore = autoMarks.filter(a => a.correctAuto===true).length;
+      $('#kpi-answered').textContent = answered.toString();
+      $('#kpi-score').textContent = `${autoScore} / ${autoMarks.length}`;
+    }
+
+    $('#btn-prev').onclick = () => {
+      saveCurrentAnswer();
+      if(session.idx>0) session.idx--;
+      renderQuestion(); refreshKpis();
+    };
+    $('#btn-next').onclick = () => {
+      saveCurrentAnswer();
+      if(session.idx<session.items.length-1) session.idx++;
+      renderQuestion(); refreshKpis();
+    };
+
+    /**********************
+     * Elev: afslut & aflever
+     **********************/
+    $('#btn-submit').onclick = () => {
+      saveCurrentAnswer();
+      // autoscore
+      const autoMarks = session.answers.filter(a => a.correctAuto!==null);
+      const autoScore = autoMarks.filter(a => a.correctAuto===true).length;
+      // build submission object
+      const sub = {
+        id: 'sub_'+Date.now(),
+        studentName: session.studentName || 'Ukendt',
+        startedAt: session.startedAt,
+        submittedAt: nowIso(),
+        items: session.items,
+        answers: session.answers,
+        auto: { scored:autoScore, total:autoMarks.length }
+      };
+      // save to localStorage
+      const list = loadSubs();
+      list.push(sub);
+      saveSubs(list);
+
+      // receipt view
+      $('#rcpt-name').textContent = sub.studentName;
+      $('#rcpt-time').textContent = fmtTime(sub.submittedAt);
+      $('#rcpt-score').textContent = `${sub.auto.scored} / ${sub.auto.total}`;
+      const tb = $('#rcpt-table tbody'); tb.innerHTML = '';
+      sub.items.forEach((q, i) => {
+        const ans = sub.answers[i];
+        const tr = document.createElement('tr');
+        const auto = (ans.correctAuto===true) ? '<span class="badge ok">Korrekt</span>' :
+                     (ans.correctAuto===false) ? '<span class="badge err">Forkert</span>' :
+                     '<span class="badge auto">Manuel</span>';
+        const pretty = prettifyAnswer(q, ans.value);
+        tr.innerHTML = `<td>${i+1}</td><td>${q.område}</td><td>${escapeHtml(q.spørgsmål||'')}</td><td>${pretty}</td><td>${auto}</td>`;
+        tb.appendChild(tr);
+      });
+
+      // UI: receipt
+      $('#student-quiz').classList.add('hidden');
+      $('#student-receipt').classList.remove('hidden');
+    };
+
+    $('#btn-back-home').onclick = () => {
+      // reset til start
+      $('#student-setup').classList.remove('hidden');
+      $('#student-quiz').classList.add('hidden');
+      $('#student-receipt').classList.add('hidden');
+    };
+
+    /*******************
+     * Lærerpanel – bank
+     *******************/
+    $('#btn-load').onclick = async () => {
+      try{
+        const res = await fetch('quizdata.json', {cache:'no-store'});
+        if(!res.ok) throw new Error('Kan ikke hente quizdata.json');
+        const data = await res.json();
+        if(!Array.isArray(data)) throw new Error('Forventede et JSON array.');
+        BANK = data; saveBankLocal(); renderBankStatus();
+        $('#ta-bank').value = JSON.stringify(BANK, null, 2);
+        alert('Quizdata indlæst.');
+      }catch(e){
+        alert('Indlæsning fejlede: '+e.message);
+      }
+    };
+
+    $('#btn-apply-bank').onclick = () => {
+      try{
+        const data = JSON.parse($('#ta-bank').value || '[]');
+        if(!Array.isArray(data)) throw new Error('Skal være et JSON array.');
+        BANK = data; saveBankLocal(); renderBankStatus();
+        alert('Bank opdateret.');
+      }catch(e){
+        alert('Kunne ikke indlæse: ' + e.message);
+      }
+    };
+
+    $('#btn-save-bank').onclick = () => {
+      if(!BANK.length){ alert('Der er ingen spørgsmål at downloade.'); return; }
+      download('quiz_bank_export.json', JSON.stringify(BANK, null, 2));
+    };
+
+    /*************************
+     * Lærerpanel – besvarelser
+     *************************/
+    function refreshTeacher(){
+      // submissions list
+      const host = $('#submissions-list');
+      const subs = loadSubs();
+      host.innerHTML = '';
+      if(!subs.length){
+        const d = document.createElement('div');
+        d.className = 'muted';
+        d.textContent = 'Ingen lokale besvarelser endnu.';
+        host.appendChild(d);
+        return;
+      }
+      subs.slice().reverse().forEach(sub => {
+        const card = document.createElement('div');
+        card.className = 'card';
+        const auto = `${sub.auto.scored} / ${sub.auto.total}`;
+        card.innerHTML = `
+          <div class="row">
+            <div class="chip">Elev</div><b>${escapeHtml(sub.studentName)}</b>
+            <div class="chip">Afleveret</div><b>${fmtTime(sub.submittedAt)}</b>
+            <div class="chip">Autoscore</div><b>${auto}</b>
+            <button class="btn right" data-open="${sub.id}">Åbn</button>
+            <button class="btn ghost" data-dl="${sub.id}">Download</button>
+            <button class="btn warn" data-del="${sub.id}">Slet</button>
+          </div>
+        `;
+        host.appendChild(card);
+      });
+
+      host.onclick = (e) => {
+        const id = e.target.dataset.open || e.target.dataset.dl || e.target.dataset.del;
+        if(!id) return;
+        const subs = loadSubs();
+        const sub = subs.find(s => s.id===id);
+        if(!sub) return;
+
+        if(e.target.dataset.open){
+          openMarking(sub);
+        } else if(e.target.dataset.dl){
+          download(`submission_${id}.json`, JSON.stringify(sub, null, 2));
+        } else if(e.target.dataset.del){
+          if(confirm('Slet denne besvarelse?')){
+            saveSubs(subs.filter(s=>s.id!==id));
+            refreshTeacher();
+          }
+        }
+      };
+    }
+
+    $('#btn-refresh-sub').onclick = refreshTeacher;
+    $('#btn-clear-all').onclick = () => {
+      if(confirm('Slette alle besvarelser? Dette kan ikke fortrydes.')){
+        saveSubs([]); refreshTeacher();
+      }
+    };
+
+    /****************************
+     * Lærer: åbne/rette besvarelse
+     ****************************/
+    function openMarking(sub){
+      $('#teacher-mark').classList.remove('hidden');
+      $('#m-name').textContent = sub.studentName;
+      $('#m-time').textContent = fmtTime(sub.submittedAt);
+      $('#m-auto').textContent = `${sub.auto.scored} / ${sub.auto.total}`;
+
+      const tb = $('#mark-table tbody'); tb.innerHTML = '';
+      sub.items.forEach((q, i) => {
+        const ans = sub.answers[i];
+        const autoBadge = (ans.correctAuto===true) ? '<span class="badge ok">Korrekt</span>' :
+                          (ans.correctAuto===false) ? '<span class="badge err">Forkert</span>' :
+                          '<span class="badge auto">Manuel</span>';
+        const tr = document.createElement('tr');
+        tr.dataset.index = i;
+        tr.innerHTML = `
+          <td>${i+1}</td>
+          <td>${escapeHtml(q.område||'')}</td>
+          <td>${escapeHtml(q.spørgsmål||'')}</td>
+          <td>${prettifyAnswer(q, ans.value)}</td>
+          <td>${autoBadge}</td>
+          <td>
+            <select class="teacher-mark">
+              <option value="">—</option>
+              <option value="correct">Godkendt</option>
+              <option value="partial">Delvist</option>
+              <option value="wrong">Ikke godkendt</option>
+            </select>
+          </td>
+          <td><textarea class="teacher-feedback" placeholder="Feedback (valgfri)"></textarea></td>
+        `;
+        tb.appendChild(tr);
+      });
+
+      // Hvis tidligere bedømmelser findes, hydrer dem
+      if(sub.teacher){
+        $$('#mark-table tbody tr').forEach((tr, i) => {
+          const m = sub.teacher.marks?.[i];
+          if(!m) return;
+          tr.querySelector('.teacher-mark').value = m.mark || '';
+          tr.querySelector('.teacher-feedback').value = m.feedback || '';
+        });
+      }
+
+      // Bind knapper
+      $('#btn-save-mark').onclick = () => {
+        const rows = $$('#mark-table tbody tr');
+        const marks = rows.map(tr => ({
+          mark: tr.querySelector('.teacher-mark').value || null,
+          feedback: tr.querySelector('.teacher-feedback').value || null
+        }));
+        const subs = loadSubs();
+        const ix = subs.findIndex(s => s.id===sub.id);
+        if(ix>=0){
+          subs[ix].teacher = {
+            markedAt: nowIso(),
+            marks
+          };
+          saveSubs(subs);
+          alert('Bedømmelse gemt lokalt.');
+        }
+      };
+
+      $('#btn-export-mark').onclick = () => {
+        const subs = loadSubs();
+        const cur = subs.find(s => s.id===sub.id) || sub;
+        download(`marked_${sub.id}.json`, JSON.stringify(cur, null, 2));
+      };
+
+      $('#btn-close-mark').onclick = () => {
+        $('#teacher-mark').classList.add('hidden');
+      };
+    }
+
+    /**********************
+     * Helpers – visning/HTML
+     **********************/
+    function escapeHtml(s){
+      return (s||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+    }
+    function prettifyAnswer(q, value){
+      if(value==null) return '<i class="muted">—</i>';
+      if(q.type==='multiple_choice'){
+        const idx = parseInt(value,10);
+        const txt = (q.svarmuligheder && q.svarmuligheder[idx]) || ('Valg '+idx);
+        return escapeHtml(txt);
+      }
+      if(q.type==='angivelse' || q.type==='beskrivelse'){
+        return `<div style="white-space:pre-wrap">${escapeHtml(String(value))}</div>`;
+      }
+      if(q.type==='drag_and_drop'){
+        const items = q.svarmuligheder || [];
+        const order = Array.isArray(value) ? value : [];
+        const lines = order.map(i => `• ${items[i]??('[ukendt]')}`);
+        return `<div style="white-space:pre-wrap">${escapeHtml(lines.join('\n'))}</div>`;
+      }
+      return escapeHtml(String(value));
+    }
+
+    /*************
+     * Boot
+     *************/
+    // Hent bank fra localStorage hvis findes
+    const cached = loadBankLocal();
+    if(cached && Array.isArray(cached) && cached.length){
+      BANK = cached; renderBankStatus();
+      $('#ta-bank').value = JSON.stringify(BANK, null, 2);
+    } else {
+      renderBankStatus();
+    }
+
+    // Elev: ryd lokale besvarelser
+    $('#btn-clear-sub').onclick = () => {
+      if(confirm('Ryd alle lokale besvarelser?')){
+        saveSubs([]); alert('Ryddet.');
+      }
+    };
+  </script>
+</body>
+</html>
