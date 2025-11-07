@@ -1,0 +1,9 @@
+/* Simple styles for login and feedback */
+.login-modal{position:fixed;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:1000}
+.login-box{background:#fff;padding:1rem;border-radius:6px;max-width:420px;width:100%}
+.login-box input, .login-box select, .login-box textarea{width:100%;margin-top:0.5rem}
+.current-user{display:flex;gap:0.5rem;align-items:center}
+.feedback{display:block;margin-top:0.5rem;color:#333}
+.auto-feedback{background:#f7f7f7;padding:0.5rem;border-radius:4px}
+.result-q{border-top:1px solid #ddd;padding:0.5rem 0}
+.teacher-q{border:1px dashed #bbb;padding:0.5rem;margin-bottom:0.5rem}

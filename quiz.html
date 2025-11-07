@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="da">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Quiz</title>
+  <link rel="stylesheet" href="/assets/css/quiz-auth.css">
+</head>
+<body>
+  <header>
+    <h1>Quiz</h1>
+    <div id="user-area"></div>
+  </header>
+
+  <main>
+    <section id="quiz-settings">
+      <label>Vis svar: 
+        <select id="reveal-mode">
+          <option value="none">Vis ikke</option>
+          <option value="inline">Under besvarelse</option>
+          <option value="after">Efter aflevering</option>
+        </select>
+      </label>
+    </section>
+
+    <form id="quiz-form" data-quiz-id="quiz-1">
+      <ol>
+        <li class="question" data-qid="q1" data-type="mc">
+          <p>Hvad er 2 + 2?</p>
+          <label><input type="radio" name="q1" value="3"> 3</label>
+          <label><input type="radio" name="q1" value="4" data-correct="true"> 4</label>
+          <label><input type="radio" name="q1" value="5"> 5</label>
+          <div class="feedback"></div>
+        </li>
+
+        <li class="question" data-qid="q2" data-type="beskriv">
+          <p>Beskriv kort, hvad fotosyntese er.</p>
+          <textarea name="q2" rows="4" cols="50"></textarea>
+          <div class="feedback"></div>
+        </li>
+      </ol>
+
+      <button type="submit">Aflevér</button>
+    </form>
+
+    <section id="results" hidden>
+      <h2>Resultat</h2>
+      <div id="score"></div>
+      <div id="per-question-results"></div>
+    </section>
+
+    <section id="teacher-panel" hidden>
+      <h2>Lærerpanel</h2>
+      <label>Vælg elev: <select id="teacher-student-select"></select></label>
+      <div id="teacher-submission-list"></div>
+    </section>
+  </main>
+
+  <!-- Login modal and simple user area is controlled by user-auth.js -->
+  <script src="/assets/js/user-auth.js"></script>
+  <script src="/assets/js/quiz-enhancements.js"></script>
+</body>
+</html>
